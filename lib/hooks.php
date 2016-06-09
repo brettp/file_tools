@@ -139,40 +139,11 @@ function file_tools_file_route_hook($hook, $type, $returnvalue, $params) {
 	$page = elgg_extract("segments", $returnvalue);
 	
 	switch ($page[0]) {
-		case "view":
-			if (!elgg_is_logged_in() && isset($page[1])) {
-				if (!get_entity($page[1])) {
-					gatekeeper();
-				}
-			}
-			break;
 		case "owner":
-			if (file_tools_use_folder_structure()) {
-				$returnvalue = false;
-					
-				include(dirname(dirname(__FILE__)) . "/pages/list.php");
-			}
-			break;
 		case "group":
 			if (file_tools_use_folder_structure()) {
 				$returnvalue = false;
-				
-				include(dirname(dirname(__FILE__)) . "/pages/list.php");
-			}
-			break;
-		case "add":
-			$returnvalue = false;
-			
-			include(dirname(dirname(__FILE__)) . "/pages/file/new.php");
-			break;
-		case "zip":
-			if (isset($page[1])) {
-				$returnvalue = false;
-				
-				elgg_set_page_owner_guid($page[1]);
-				
-				register_error(elgg_echo("changebookmark"));
-				forward("file/add/" . $page[1] . "?upload_type=zip");
+				echo elgg_view_resource("file_tools/owner");
 			}
 			break;
 		case "bulk_download":
@@ -374,13 +345,23 @@ function file_tools_entity_menu_hook($hook, $type, $returnvalue, $params) {
 				unset($returnvalue[$index]);
 			}
 		}
-	} elseif (elgg_instanceof($entity, "object", "file")) {
+	} else if (elgg_instanceof($entity, "object", "file")) {
 		$returnvalue[] = ElggMenuItem::factory(array(
 			"name" => "download",
 			"text" => elgg_view_icon("download"),
 			"href" => "file/download/" . $entity->getGUID(),
 			"title" => elgg_echo("file:download"),
 			"priority" => 200
+		));
+
+		$returnvalue[] = ElggMenuItem::factory(array(
+			"name" => "checkbox",
+			"text" => elgg_view_input('checkbox', [
+				'name' => 'files[]',
+				'value' => $entity->getGUID()
+			]),
+			"href" => false,
+			"priority" => 1000
 		));
 	}
 	

@@ -4,7 +4,6 @@
 define(function(require) {
 	var elgg = require('elgg');
 	var $ = require('jquery');
-	var serializer = require('file_tools/json_serializer');
 
 	/**
 	 *
@@ -33,18 +32,25 @@ define(function(require) {
 			search_type = query_parts.search_viewtype;
 		}
 
-		var url = elgg.get_site_url() + "file_tools/list/" + elgg.get_page_owner_guid() + "?folder_guid=" + folder_guid + "&search_viewtype=" + search_type;
+		var url = elgg.get_site_url() + "file_tools/list/" + elgg.get_page_owner_guid()
+			+ "?folder_guid=" + folder_guid + "&search_viewtype=" + search_type;
 
 		$("#file_tools_list_files_container .elgg-ajax-loader").show();
-		$("#file_tools_list_files_container").load(url, function() {
-			var new_add_link = elgg.get_site_url() + "file/add/" + elgg.get_page_owner_guid() + "?folder_guid=" + folder_guid;
-			$('ul.elgg-menu-title li.elgg-menu-item-add a').attr("href", new_add_link);
 
-			var new_zip_link = elgg.get_site_url() + "file/zip/" + elgg.get_page_owner_guid() + "?folder_guid=" + folder_guid;
-			$('ul.elgg-menu-title li.elgg-menu-item-zip-upload a').attr("href", new_zip_link);
+		// don't expect json because only actions automatically return json.
+		$.get(url)
+			.done(function(data, status, xhr) {
+				$("#file_tools_list_files_container").html(data);
 
-			initialize_file_draggable();
-		});
+				var new_add_link = elgg.get_site_url() + "file/add/" + elgg.get_page_owner_guid() + "?folder_guid=" + folder_guid;
+				$('ul.elgg-menu-title li.elgg-menu-item-add a').attr("href", new_add_link);
+
+				var new_zip_link = elgg.get_site_url() + "file/zip/" + elgg.get_page_owner_guid() + "?folder_guid=" + folder_guid;
+				$('ul.elgg-menu-title li.elgg-menu-item-zip-upload a').attr("href", new_zip_link);
+
+				initialize_file_draggable();
+				initialize_folder_droppable();
+			});
 	};
 
 	/**
@@ -66,7 +72,7 @@ define(function(require) {
 				}
 			},
 			success: function(result) {
-				draggable.parent().remove();
+				draggable.remove();
 			}
 		});
 	};
@@ -79,10 +85,10 @@ define(function(require) {
 
 		if ($(this).find("span:first").is(":visible")) {
 			// select all
-			$('#file_tools_list_files input[type="checkbox"]').attr("checked", "checked");
+			$('#file_tools_list_files input[type="checkbox"]').prop("checked", true);
 		} else {
 			// deselect all
-			$('#file_tools_list_files input[type="checkbox"]').removeAttr("checked");
+			$('#file_tools_list_files input[type="checkbox"]').prop("checked", false);
 		}
 
 		$(this).find("span").toggle();
@@ -100,26 +106,28 @@ define(function(require) {
 			return;
 		}
 
-		if (confirm(elgg.echo("deleteconfirm"))) {
-			var postData = $checkboxes.serializeJSON();
-
-			if ($('#file_tools_list_files input[type="checkbox"][name="folder_guids[]"]:checked').length && confirm(elgg.echo("file_tools:folder:delete:confirm_files"))) {
-				postData.files = "yes";
-			}
-
-			$("#file_tools_list_files_container .elgg-ajax-loader").show();
-
-			elgg.action("file/bulk_delete", {
-				data: postData,
-				success: function(res){
-					$.each($checkboxes, function(key, value) {
-						$('#elgg-object-' + $(value).val()).remove();
-					});
-
-					$("#file_tools_list_files_container .elgg-ajax-loader").hide();
-				}
-			});
+		if (!confirm(elgg.echo("deleteconfirm"))) {
+			return;
 		}
+
+		var postData = $checkboxes.serializeJSON();
+
+		if ($('#file_tools_list_files input[type="checkbox"][name="folder_guids[]"]:checked').length && confirm(elgg.echo("file_tools:folder:delete:confirm_files"))) {
+			postData.files = "yes";
+		}
+
+		$("#file_tools_list_files_container .elgg-ajax-loader").show();
+
+		elgg.action("file/bulk_delete", {
+			data: postData,
+			success: function(res){
+				$.each($checkboxes, function(key, value) {
+					$('#elgg-object-' + $(value).val()).remove();
+				});
+
+				$("#file_tools_list_files_container .elgg-ajax-loader").hide();
+			}
+		});
 	};
 
 	/**
@@ -133,35 +141,6 @@ define(function(require) {
 		if ($checkboxes.length) {
 			elgg.forward("file/bulk_download?" + $checkboxes.serialize());
 		}
-	};
-
-	/**
-	 *
-	 */
-	var new_folder = function(event) {
-		event.preventDefault();
-
-		var hash = window.location.hash.substr(1);
-		var link = elgg.get_site_url() + "file_tools/folder/new/" + elgg.get_page_owner_guid() + "?folder_guid=" + hash;
-
-		$.colorbox({
-			href: link,
-			titleShow: false
-		});
-	};
-
-	/**
-	 *
-	 */
-	var upload_tab_click = function(event) {
-		event.preventDefault();
-
-		$('#file-tools-upload-tabs .elgg-state-selected').removeClass("elgg-state-selected");
-		$(this).parent().addClass("elgg-state-selected");
-
-		var id = $(this).attr("id").replace("-link", "");
-		$('#file-tools-upload-wrapper form').hide();
-		$('#' + id).show();
 	};
 
 	/**
@@ -191,6 +170,7 @@ define(function(require) {
 				var li = $(data).find("ul.elgg-list-entity > li");
 				$('#file_tools_list_files ul.elgg-list').append(li);
 				initialize_file_draggable();
+				initialize_folder_droppable()
 
 				// replace the show more button with new data
 				var show_more = $(data).find("#file-tools-show-more-wrapper");
@@ -207,7 +187,7 @@ define(function(require) {
 	 *
 	 */
 	var initialize_file_draggable = function() {
-		$("#file_tools_list_files .file-tools-file").draggable({
+		$("#file_tools_list_files .elgg-item-object-file").draggable({
 			revert: "invalid",
 			opacity: 0.8,
 			appendTo: "body",
@@ -226,27 +206,55 @@ define(function(require) {
 	 *
 	 */
 	var initialize_folder_droppable = function() {
-		$("#file_tools_list_files .file-tools-folder").droppable({
-			accept: "#file_tools_list_files .file-tools-file",
+		$("#file_tools_list_files .elgg-item-object-folder").droppable({
+			accept: "#file_tools_list_files .elgg-item-object-file",
 			drop: function(event, ui){
-				droppable = $(this);
-				draggable = ui.draggable;
+				var droppable = $(this);
+				var draggable = ui.draggable;
 
-				drop_id = droppable.parent().attr("id").split("-").pop();
-				drag_id = draggable.parent().attr("id").split("-").pop();
+				var drop_id = droppable.prop("id").split("-").pop();
+				var drag_id = draggable.prop("id").split("-").pop();
 
 				move_file(drag_id, drop_id, draggable);
 			}
 		});
 	};
 
-	$(document).on("click", '#file-tools-upload-tabs a', upload_tab_click);
+	var handleFileUploadChange = function(e) {
+		var files = this.files;
+
+
+		// if more than one file, hide the title and desc fields
+		if (files.length > 1) {
+			$('.file-tools-title-and-desc').hide('fast');
+		} else {
+			$('.file-tools-title-and-desc').show('fast');
+		}
+
+		// var showZip = false;
+		//
+		// for (var i = 0; i < files.length; i++) {
+		// 	var ext = files[i].name.split('.').pop();
+		// 	// if any files are zips, offer to expand them
+		// 	if (ext.toLowerCase() == 'zip') {
+		// 		showZip = true;
+		// 		break;
+		// 	}
+		// }
+		//
+		// if (showZip) {
+		// 	$('.file-tools-extract-zips').show('fast');
+		// } else {
+		// 	$('.file-tools-extract-zips').hide('fast');
+		// }
+	};
+
+	$('form').on('change', '#file-tools-upload', handleFileUploadChange);
 	$(document).on("click", '#file_tools_breadcrumbs a', breadcrumb_click);
 	$(document).on("click", '#file_tools_select_all', select_all);
 	$(document).on("click", '#file_tools_action_bulk_delete', bulk_delete);
 	$(document).on("click", '#file_tools_action_bulk_download', bulk_download);
 	$(document).on("click", '#file-tools-show-more-files', show_more_files);
-	$(document).on("click", '#file_tools_list_new_folder_toggle', new_folder);
 
 	return {
 		'load_folder': load_folder,

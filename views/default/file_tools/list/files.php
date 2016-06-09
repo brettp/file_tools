@@ -2,9 +2,9 @@
 
 $files = elgg_extract("files", $vars, array());
 $folder = elgg_extract("folder", $vars);
-$show_more = (bool) elgg_extract("show_more", $vars, false);
-$limit = (int) elgg_extract("limit", $vars, file_tools_get_list_length());
-$offset = (int) elgg_extract("offset", $vars, 0);
+$show_more = (bool)elgg_extract("show_more", $vars, false);
+$limit = (int)elgg_extract("limit", $vars, file_tools_get_list_length());
+$offset = (int)elgg_extract("offset", $vars, 0);
 
 // only show the header if offset == 0
 $folder_content = "";
@@ -43,11 +43,20 @@ if (empty($files_content)) {
 			"class" => "elgg-button-action",
 			"id" => "file-tools-show-more-files",
 		));
-		$files_content .= elgg_view("input/hidden", array("name" => "offset", "value" => ($limit + $offset)));
+		$files_content .= elgg_view("input/hidden", array(
+			"name" => "offset",
+			"value" => ($limit + $offset)
+		));
 		if (!empty($folder)) {
-			$files_content .= elgg_view("input/hidden", array("name" => "folder_guid", "value" => $folder->getGUID()));
+			$files_content .= elgg_view("input/hidden", array(
+				"name" => "folder_guid",
+				"value" => $folder->getGUID()
+			));
 		} else {
-			$files_content .= elgg_view("input/hidden", array("name" => "folder_guid", "value" => "0"));
+			$files_content .= elgg_view("input/hidden", array(
+				"name" => "folder_guid",
+				"value" => "0"
+			));
 		}
 		$files_content .= "</div>";
 	}
@@ -57,12 +66,16 @@ if (empty($files_content)) {
 		$files_content .= "<div class='clearfix'>";
 
 		if (elgg_get_page_owner_entity()->canEdit()) {
-			$files_content .= '<a id="file_tools_action_bulk_delete" href="javascript:void(0);">' . elgg_echo("file_tools:list:delete_selected") . '</a> | ';
+			$files_content .= '<a id="file_tools_action_bulk_delete">' .
+				elgg_echo("file_tools:list:delete_selected") .
+				'</a> | ';
 		}
 
-		$files_content .= "<a id='file_tools_action_bulk_download' href='javascript:void(0);'>" . elgg_echo("file_tools:list:download_selected") . "</a>";
+		$files_content .= "<a id='file_tools_action_bulk_download'>" .
+			elgg_echo("file_tools:list:download_selected") .
+			"</a>";
 
-		$files_content .= "<a id='file_tools_select_all' class='float-alt' href='javascript:void(0);'>";
+		$files_content .= "<a id='file_tools_select_all' class='float-alt'>";
 		$files_content .= "<span>" . elgg_echo("file_tools:list:select_all") . "</span>";
 		$files_content .= "<span class='hidden'>" . elgg_echo("file_tools:list:deselect_all") . "</span>";
 		$files_content .= "</a>";

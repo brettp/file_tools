@@ -1,30 +1,33 @@
 <?php
 /**
- * Elgg file browser.
- * File renderer.
- *
- * @package ElggFile
+ * Override to show the user-settable date format
  */
 
-$file = elgg_extract("entity", $vars, false);
-$full_view = elgg_extract("full_view", $vars, false);
+$full = elgg_extract('full_view', $vars, FALSE);
+$file = elgg_extract('entity', $vars, FALSE);
 
-if (empty($file)) {
-	return true;
+if (!$file) {
+	return TRUE;
 }
 
-$file_guid = $file->getGUID();
 $owner = $file->getOwnerEntity();
-
-$tags = elgg_view("output/tags", array("value" => $file->tags));
 $categories = elgg_view('output/categories', $vars);
 
-$title = $file->title;
-$mime = $file->mimetype;
-$base_type = substr($mime, 0, strpos($mime,'/'));
+$vars['owner_url'] = "file/owner/$owner->username";
+$by_line = elgg_view('page/elements/by_line', $vars);
 
-$owner_link = elgg_view("output/url", array("text" => $owner->name, "href" => $owner->getURL(), "is_trusted" => true));
-$author_text = elgg_echo("byline", array($owner_link));
+$comments_count = $file->countComments();
+//only display if there are commments
+if ($comments_count != 0) {
+	$text = elgg_echo("comments") . " ($comments_count)";
+	$comments_link = elgg_view('output/url', array(
+		'href' => $file->getURL() . '#comments',
+		'text' => $text,
+		'is_trusted' => true,
+	));
+} else {
+	$comments_link = '';
+}
 
 // which time format to show
 $time_preference = "date";
@@ -41,128 +44,72 @@ if ($time_preference == "date") {
 	$date = elgg_view_friendly_time($file->time_created);
 }
 
-// count comments
-$comments_link = "";
-$comment_count = (int) $file->countComments();
-if ($comment_count > 0) {
-	$comments_link = elgg_view("output/url", array(
-		"href" => $file->getURL() . "#file-comments",
-		"text" => elgg_echo("comments") . " ($comment_count)",
-		"is_trusted" => true,
+$subtitle = "$by_line $date $comments_link $categories";
+
+$metadata = '';
+if (!elgg_in_context('widgets') && !elgg_in_context('gallery')) {
+	// only show entity menu outside of widgets and gallery view
+	$metadata = elgg_view_menu('entity', array(
+		'entity' => $vars['entity'],
+		'handler' => 'file',
+		'sort_by' => 'priority',
+		'class' => 'elgg-menu-hz',
 	));
 }
 
-$subtitle = "$author_text $date $comments_link $categories";
+if ($full && !elgg_in_context('gallery')) {
+	$mime = $file->mimetype;
+	$base_type = substr($mime, 0, strpos($mime,'/'));
 
-// title
-if (empty($title)) {
-	$title = elgg_echo("untitled");
-}
-
-// entity actions
-$entity_menu = "";
-if (!elgg_in_context("widgets")) {
-	$entity_menu = elgg_view_menu("entity", array(
-		"entity" => $file,
-		"handler" => "file",
-		"sort_by" => "priority",
-		"class" => "elgg-menu-hz"
-	));
-}
-
-if ($full_view && !elgg_in_context("gallery")) {
-	// normal full view
-	
-	// add folder structure to the breadcrumbs
-	if (file_tools_use_folder_structure()) {
-		// @todo this should probably be moved to the file view page, but that is currently not under control of file_tools
-		$endpoint = elgg_pop_breadcrumb();
-		
-		$parent_folder = elgg_get_entities_from_relationship(array(
-			'relationship' => 'folder_of',
-			'relationship_guid' => $file->getGUID(),
-			'inverse_relationship' => true
-		));
-
-		$folders = array();
-		if ($parent_folder) {
-
-			$parent_guid = (int) $parent_folder[0]->guid;
-
-			while (!empty($parent_guid) && ($parent = get_entity($parent_guid))) {
-				$folders[] = $parent;
-				$parent_guid = (int) $parent->parent_guid;
-			}
-		}
-
-		while ($p = array_pop($folders)) {
-			elgg_push_breadcrumb($p->title, $p->getURL());
-		}
-
-		elgg_push_breadcrumb($file->title);
-	}
-
-	$extra = "";
+	$extra = '';
 	if (elgg_view_exists("file/specialcontent/$mime")) {
 		$extra = elgg_view("file/specialcontent/$mime", $vars);
-	} elseif (elgg_view_exists("file/specialcontent/$base_type/default")) {
+	} else if (elgg_view_exists("file/specialcontent/$base_type/default")) {
 		$extra = elgg_view("file/specialcontent/$base_type/default", $vars);
 	}
-	
+
 	$params = array(
-		"entity" => $file,
-		"title" => elgg_view("output/url", array("text" => $title, "href" => "file/download/" . $file->getGUID())),
-		"metadata" => $entity_menu,
-		"subtitle" => $subtitle,
-		"tags" => $tags
+		'entity' => $file,
+		'title' => false,
+		'metadata' => $metadata,
+		'subtitle' => $subtitle,
+		'file_size_field' => file_tools_get_readable_file_size(filesize($file->getFilenameOnFilestore()))
 	);
 	$params = $params + $vars;
-	$summary = elgg_view("object/elements/summary", $params);
-	
-	$text = elgg_view("output/longtext", array("value" => $file->description));
+	$summary = elgg_view('object/elements/summary', $params);
+
+	$text = elgg_view('output/longtext', array('value' => $file->description));
 	$body = "$text $extra";
-	
-	echo elgg_view("object/elements/full", array(
-			"entity" => $file,
-			"title" => false,
-			"icon" => elgg_view_entity_icon($file, "small"),
-			"summary" => $summary,
-			"body" => $body
+
+	$file_icon = elgg_view_entity_icon($file, 'small', array('href' => false));
+
+	echo elgg_view('object/elements/full', array(
+		'entity' => $file,
+		'icon' => $file_icon,
+		'summary' => $summary,
+		'body' => $body,
 	));
-} elseif (elgg_in_context("gallery")) {
-	// gallery view of the file
-	echo "<div class='file-gallery-item'>";
+
+} elseif (elgg_in_context('gallery')) {
+	echo '<div class="file-gallery-item">';
 	echo "<h3>" . $file->title . "</h3>";
-	echo elgg_view_entity_icon($file, "medium");
-	echo "<p class='elgg-quiet'>$owner_link $date</p>";
-	echo "</div>";
+	echo elgg_view_entity_icon($file, 'medium');
+	echo "<p class='subtitle'>$owner_link $date</p>";
+	echo '</div>';
 } else {
-	// listing view of the file
-	$file_icon_alt = "";
-	if (file_tools_use_folder_structure()) {
-		$file_icon = elgg_view_entity_icon($file, "tiny", array("img_class" => "file-tools-icon-tiny"));
-		
-		if (elgg_in_context("file_tools_selector")) {
-			$file_icon_alt = elgg_view("input/checkbox", array("name" => "file_guids[]", "value" => $file->getGUID(), "default" => false));
-		}
-		
-		$excerpt = "";
-		$subtitle = "";
-		$tags = "";
-	} else {
-		$file_icon = elgg_view_entity_icon($file, "small");
-		$excerpt = elgg_get_excerpt($file->description);
-	}
-	
+	// brief view
+	$excerpt = elgg_get_excerpt($file->description);
+
+	$file_icon = elgg_view_entity_icon($file, 'small');
+
 	$params = array(
-		"entity" => $file,
-		"metadata" => $entity_menu,
-		"subtitle" => $subtitle,
-		"tags" => $tags,
-		"content" => $excerpt
+		'entity' => $file,
+		'metadata' => $metadata,
+		'subtitle' => $subtitle,
+		'content' => $excerpt,
 	);
 	$params = $params + $vars;
-	$list_body = elgg_view("object/elements/summary", $params);
-	
-	echo elgg_view_image_block($file_icon, $list_body, array("class" => "file-tools-file", "image_alt" => $file_icon_alt));
+	$list_body = elgg_view('object/elements/summary', $params);
+
+	echo elgg_view_image_block($file_icon, $list_body);
 }

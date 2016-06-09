@@ -81,6 +81,7 @@ return array(
 	'file_tools:folder:delete:confirm_files' => "Do you also wish to delete all files in the removed (sub)folders",
 
 	// upload
+	'file:upload:max' => 'You have exceeded the maximum file size of %s MB. Please upload a smaller file.',
 	'file_tools:upload:tabs:single' => "Single file",
 	'file_tools:upload:tabs:multi' => "Multi file",
 	'file_tools:upload:tabs:zip' => "Zip file",

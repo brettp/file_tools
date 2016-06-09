@@ -1,9 +1,9 @@
 <?php
 
-$folder_guid = (int) get_input("folder_guid");
+$folder_guid = (int)get_input("folder_guid");
 
 $container_guid = elgg_extract("container_guid", $vars, elgg_get_page_owner_guid());
-$current_folder	= elgg_extract("folder", $vars, $folder_guid);
+$current_folder = elgg_extract("folder", $vars, $folder_guid);
 $type = elgg_extract("type", $vars);
 
 unset($vars["folder"]);
@@ -32,4 +32,4 @@ if (!empty($folders)) {
 
 $vars["options_values"] = $options;
 
-echo elgg_view("input/dropdown", $vars);
+echo elgg_view("input/select", $vars);

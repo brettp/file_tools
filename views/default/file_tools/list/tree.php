@@ -24,12 +24,19 @@ $body .= "</div>";
 
 $user_guid = elgg_get_logged_in_user_guid();
 
-if ($page_owner->canWriteToContainer($user_guid, 'object', FILE_TOOLS_SUBTYPE) && $page_owner->file_tools_structure_management_enable != "no") {
+if ($page_owner->canWriteToContainer($user_guid, 'object', FILE_TOOLS_SUBTYPE) &&
+	$page_owner->file_tools_structure_management_enable != "no"
+) {
 	elgg_load_js("lightbox");
 	elgg_load_css("lightbox");
 
 	$body .= "<div class='mtm'>";
-	$body .= elgg_view("input/button", array("value" => elgg_echo("file_tools:new:title"), "id" => "file_tools_list_new_folder_toggle", "class" => "elgg-button-action"));
+	$body .= elgg_view("output/url", array(
+		"text" => elgg_echo("file_tools:new:title"),
+		"href" => "file_tools/folder/new/" . elgg_get_page_owner_guid() . "?parent_guid=" . get_input('folder_guid', 0),
+		'data-url-format' => "file_tools/folder/new/{owner_guid}?folder_guid={folder_guid}",
+		"class" => "elgg-button elgg-button-action elgg-lightbox"
+	));
 	$body .= "</div>";
 }
 

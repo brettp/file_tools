@@ -16,7 +16,7 @@ $options = array(
 
 if ($files = elgg_list_entities($options)) {
 	echo $files;
-	
+
 	echo "<span class='elgg-widget-more'>";
 	echo elgg_view("output/url", array("href" => "file/all", "text" => elgg_echo("file:more"), "is_trusted" => true));
 	echo "</span>";

@@ -1,21 +1,18 @@
 <?php
-	
+
+$num = $vars['entity']->num_display;
+
 $widget = elgg_extract("entity", $vars);
 $site_url = elgg_get_site_url();
 
-// how many files to display
-$num_display = sanitise_int($widget->num_display, false);
-if (empty($num_display)) {
-	$num_display = 4;
-}
-
 $options = array(
-	"type" => "object",
-	"subtype" => "file",
-	"container_guid" => $widget->getOwnerGUID(),
-	"limit" => $num_display,
-	"pagination" => false,
-	"full_view" => false
+	'type' => 'object',
+	'subtype' => 'file',
+	'container_guid' => $vars['entity']->owner_guid,
+	'limit' => $num,
+	'full_view' => FALSE,
+	'pagination' => FALSE,
+	'distinct' => false,
 );
 
 // show only featured files
@@ -27,43 +24,26 @@ if ($widget->featured_only == "yes") {
 	);
 }
 
-// how to display the files
 if ($widget->gallery_list == 2) {
-	if ($files = elgg_get_entities_from_metadata($options)) {
-		$list = "<ul class='elgg-gallery'>";
-		
-		foreach ($files as $file) {
-			$list .= "<li class='elgg-item'>";
-			$list .= elgg_view("output/url", array("text" => elgg_view_entity_icon($file, "small"), "href" => $file->getURL(), "title" => $file->title));
-			$list .= "</li>";
-		}
-		$list .= "</ul>";
-		
-		$owner = $widget->getOwnerEntity();
-		if (elgg_instanceof($owner, "user")) {
-			$more_link = $site_url . "file/owner/" . $owner->username;
-		} else {
-			$more_link = $site_url . "file/group/" . $owner->getGUID() . "/all";
-		}
-		$list .= "<span class='elgg-widget-more'>";
-		$list .= elgg_view("output/url", array("text" => elgg_echo("file:more"), "href" => $more_link, "is_trusted" => true));
-		$list .= "</span>";
-		
-	} else {
-		$list = elgg_echo("file:none");
-	}
-} elseif ($list = elgg_list_entities_from_metadata($options)) {
-	$owner = $widget->getOwnerEntity();
-	if (elgg_instanceof($owner, "user")) {
-		$more_link = $site_url . "file/owner/" . $owner->username;
-	} else {
-		$more_link = $site_url . "file/group/" . $owner->getGUID() . "/all";
-	}
-	$list .= "<span class='elgg-widget-more'>";
-	$list .= elgg_view("output/url", array("text" => elgg_echo("file:more"), "href" => $more_link, "is_trusted" => true));
-	$list .= "</span>";
-} else {
-	$list = elgg_echo("file:none");
+	elgg_push_context('gallery');
 }
 
-echo $list;
+$content = elgg_list_entities_from_metadata($options);
+
+echo $content;
+
+if ($content) {
+	$url = "file/owner/" . elgg_get_page_owner_entity()->username;
+	$more_link = elgg_view('output/url', array(
+		'href' => $url,
+		'text' => elgg_echo('file:more'),
+		'is_trusted' => true,
+	));
+	echo "<span class=\"elgg-widget-more\">$more_link</span>";
+} else {
+	echo elgg_echo('file:none');
+}
+
+if ($widget->gallery_list == 2) {
+	elgg_pop_context();
+}

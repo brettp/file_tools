@@ -4,39 +4,6 @@
  */
 
 /**
- * Listen to different events on objects (create/update)
- *
- * @param string     $event  the name of the event
- * @param string     $type   the type of the event
- * @param ElggObject $object supplied object
- *
- * @return void
- */
-function file_tools_object_handler($event, $type, $object) {
-	
-	if (!empty($object) && elgg_instanceof($object, "object", "file")) {
-		$folder_guid = (int) get_input("folder_guid", 0);
-
-		if (!empty($folder_guid)) {
-			if ($folder = get_entity($folder_guid)) {
-				if (!elgg_instanceof($folder, "object", FILE_TOOLS_SUBTYPE)) {
-					unset($folder_guid);
-				}
-			} else {
-				unset($folder_guid);
-			}
-		}
-
-		// remove old relationships
-		remove_entity_relationships($object->getGUID(), FILE_TOOLS_RELATIONSHIP, true);
-			
-		if (!empty($folder_guid)) {
-			add_entity_relationship($folder_guid, FILE_TOOLS_RELATIONSHIP, $object->getGUID());
-		}
-	}
-}
-
-/**
  * Listen to delete event on objects
  *
  * @param string     $event  the name of the event
