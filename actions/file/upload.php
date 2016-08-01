@@ -24,7 +24,7 @@ if ($container_guid == 0) {
 elgg_make_sticky_form('file');
 
 // check to see if the user has exceeded the maximum file size
-$max = (int) ini_get('upload_max_filesize');
+$max = (int) elgg_get_ini_setting_in_bytes('upload_max_filesize');
 if ((int) $_SERVER['CONTENT_LENGTH'] > $max) {
 	register_error(elgg_echo("file:upload:max", [file_tools_get_readable_file_size_limit()]));
 	forward(REFERER);
