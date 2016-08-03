@@ -72,8 +72,7 @@ if ($full && !elgg_in_context('gallery')) {
 		'entity' => $file,
 		'title' => false,
 		'metadata' => $metadata,
-		'subtitle' => $subtitle,
-		'file_size_field' => file_tools_get_readable_file_size(filesize($file->getFilenameOnFilestore()))
+		'subtitle' => $subtitle . file_tools_get_readable_file_size(filesize($file->getFilenameOnFilestore()))
 	);
 	$params = $params + $vars;
 	$summary = elgg_view('object/elements/summary', $params);
