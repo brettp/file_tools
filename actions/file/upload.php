@@ -13,7 +13,7 @@ $access_id = (int) get_input("access_id");
 $container_guid = (int) get_input('container_guid', 0);
 $folder_guid = (int) get_input('folder_guid', 0);
 $guid = (int) get_input('file_guid');
-$tags = get_input("tags");
+$tags = get_input("tags", '');
 $unzip = get_input('extract_zip', false);
 $folder_guid = (int) get_input("folder_guid", 0);
 
